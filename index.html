@@ -2474,6 +2474,13 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       }
       $("lanBtn").onclick = openLan;
 
+      // touch fix: a tap on a piece is already handled on pointerdown/pointerup, so swallow the click that follows
+      // (on touch it reached the square and immediately undid the selection, hiding the dots on release)
+      let swallowUntil = 0;
+      piecesElement.addEventListener("pointerdown", () => { swallowUntil = 0; }, true);
+      piecesElement.addEventListener("pointerup", () => { if (drag) swallowUntil = performance.now() + 300; }, true);
+      piecesElement.addEventListener("click", (e) => { if (e.isTrusted && swallowUntil && performance.now() < swallowUntil) { swallowUntil = 0; e.stopPropagation(); e.preventDefault(); } }, true);
+
       drawBoard();
       fitScreen();
       // restore: shared link first, then autosave
