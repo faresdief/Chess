@@ -111,6 +111,9 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
 #gP{min-height:5.6em;margin:0 0 10px}.gdots{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
 .gdots span{width:7px;height:7px;border-radius:50%;background:var(--fill2);transition:width .4s var(--ease),background-color .3s}.gdots .on{width:18px;border-radius:4px;background:var(--accent)}
 .sheet textarea{width:100%;font:11px/1.35 var(--mono);resize:none}
+.tools[hidden]{display:none}.sgrid #clearArrows,.sgrid #arrowBtn{grid-column:1/-1}.sgrid #tc{grid-column:1/-1}
+.piece.hang::after{content:"";position:absolute;top:5px;right:5px;width:11px;height:11px;border-radius:50%;background:#ff453a;box-shadow:0 0 0 2px rgba(255,255,255,.9);pointer-events:none}
+.legalSquare.risk{--dot:rgba(255,69,58,.65)}
 @keyframes fade{from{opacity:0}}@keyframes sheet{from{transform:translateY(100%)}}
 @keyframes pop{from{opacity:0;transform:scale(.94) translateY(8px)}}
 
@@ -133,25 +136,25 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
           <div id="capWhite" class="cap"></div>
           <div id="moveList"></div>
           <div class="nav"><button id="nav_first" class="ctl" aria-label="First move">&#9198;</button><button id="nav_prev" class="ctl" aria-label="Previous move">&#9664;</button><button id="nav_next" class="ctl" aria-label="Next move">&#9654;</button><button id="nav_last" class="ctl" aria-label="Last move">&#9197;</button></div>
-          <div class="tools"><button id="pgn" class="ctl">PGN</button><button id="share" class="ctl">Share</button><button id="shareImg" class="ctl">Image</button></div>
+          <div class="tools" id="tools1"><button id="pgn" class="ctl">PGN</button><button id="share" class="ctl">Share</button><button id="shareImg" class="ctl">Image</button></div><div class="tools" id="puzBar" hidden><button id="puzRetry" class="ctl">Retry</button><button id="puzNext" class="ctl">Next</button><button id="puzExit" class="ctl">Exit</button></div>
           <div id="capBlack" class="cap"></div>
         </section>
         <section class="controls" aria-label="Controls">
-          <button id="start" class="start">Start</button>
+          <button id="start" class="start">New Game</button>
           <select id="mode" class="ctl" aria-label="Game mode"><option value="0">2 Players</option><option value="1">vs Computer: Easy</option><option value="2">vs Computer: Medium</option><option value="3">vs Computer: Hard</option></select>
-          <select id="tc" class="ctl" aria-label="Time control"><option value="off">Time: Off</option><option value="3+2">Time: 3+2</option><option value="5+3">Time: 5+3</option><option value="10+0">Time: 10+0</option><option value="15+10">Time: 15+10</option></select>
+          
           <button id="undo" class="ctl undo">Undo</button>
           <button id="redo" class="ctl redo">Redo</button>
-          <div class="row3"><button id="lanBtn" class="ctl">LAN</button><button id="guideBtn" class="ctl">Guide</button><button id="gear" class="ctl">Settings</button></div>
+          <div class="row3"><button id="hintBtn" class="ctl">Hint</button><button id="drawBtn" class="ctl">Draw</button><button id="resignBtn" class="ctl">Resign</button></div><div class="row3"><button id="lanBtn" class="ctl">LAN</button><button id="puzBtn" class="ctl">Puzzles</button><button id="gear" class="ctl">Settings</button></div>
         </section>
       </aside>
     </main>
     <div id="settings" class="overlay" hidden><div class="sheet"><h2>Settings</h2><div class="sgrid">
       <button id="flip" class="ctl">Flip Board</button><button id="auto_flip" class="ctl auto_flip">Auto Flip</button>
       <button id="theme" class="ctl">Theme: Classic</button><button id="setBtn" class="ctl">Pieces: Soft</button>
-      <button id="soundBtn" class="ctl">Sound: On</button><button id="arrowBtn" class="ctl">Draw Arrows: Off</button>
-      <button id="save" class="ctl save">Save Game</button><button id="load" class="ctl load">Load Game</button>
-      <button id="histBtn" class="ctl">History</button><button id="clearArrows" class="ctl">Clear arrows</button><button id="closeSettings" class="start" style="grid-column:1/-1">Done</button></div></div></div>
+      <button id="soundBtn" class="ctl">Sound: On</button>
+      <button id="save" class="ctl save">Save Game</button><button id="load" class="ctl load">Load Game</button><button id="histBtn" class="ctl">History</button>
+      <select id="tc" class="ctl" aria-label="Time control"><option value="off">Time: Off</option><option value="3+2">Time: 3+2</option><option value="5+3">Time: 5+3</option><option value="10+0">Time: 10+0</option><option value="15+10">Time: 15+10</option></select><button id="sideBtn" class="ctl">Play as: White</button><button id="begBtn" class="ctl">Beginner help: Off</button><button id="evalBtn" class="ctl">Eval bar: On</button><button id="guideBtn" class="ctl">How to play</button><button id="clearArrows" class="ctl">Clear arrows</button><button id="arrowBtn" class="ctl">Draw Arrows: Off</button><button id="closeSettings" class="start" style="grid-column:1/-1">Done</button></div></div></div>
     <div id="live" class="sr" aria-live="polite"></div>
     <script>
       let selectedSquare = null;
@@ -160,7 +163,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       let autoflip = false;
       let moveHistory = [];
       let redoHistory = [];
-      let flipped = false, vsAI = false, aiLevel = 2, aiThinking = false, gameId = 0;
+      let flipped = false, vsAI = false, aiLevel = 2, aiThinking = false, gameId = 0, aiSide = "black";
       let sanList = [], captured = { white: [], black: [] }, lastMove = null, pendingSan = null;
       let startFen = null, sanOffset = 0, startNum = 1;
       let arrowsByPos = {}, arrowDraw = null, arrowMode = false;
@@ -976,7 +979,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
           }
 
           if (first) button.addEventListener("click", function () {
-            if (arrowMode || pendingPromotion || gameOver || aiThinking || (vsAI && turn == "black")) return;
+            if (arrowMode || pendingPromotion || gameOver || aiThinking || (vsAI && aiTurn())) return;
 
             let continueSelection = false;
 
@@ -1237,7 +1240,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         redoHistory.push(getCurrentState());
 
         let state = moveHistory.pop();
-        if (vsAI && state.turn == "black" && moveHistory.length) {
+        if (vsAI && state.turn == aiSide && moveHistory.length) {
           redoHistory.push(state);
           state = moveHistory.pop();
         }
@@ -1253,7 +1256,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         moveHistory.push(getCurrentState());
 
         let state = redoHistory.pop();
-        if (vsAI && state.turn == "black" && redoHistory.length) {
+        if (vsAI && state.turn == aiSide && redoHistory.length) {
           moveHistory.push(state);
           state = redoHistory.pop();
         }
@@ -1442,7 +1445,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         const tl = [...moveHistory, getCurrentState(), ...redoHistory.slice().reverse()];
         let idx = tl.findIndex((st) => (st.sanList || []).length === n && !st.pendingPromotion);
         if (idx < 0) return;
-        if (vsAI && tl[idx].turn == "black" && tl[idx + 1]) idx++;
+        if (vsAI && tl[idx].turn == aiSide && tl[idx + 1]) idx++;
         moveHistory = tl.slice(0, idx);
         redoHistory = tl.slice(idx + 1).reverse();
         restoreState(tl[idx]);
@@ -1576,15 +1579,16 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         return best;
       }
 
-      function chooseAIMove() {
-        const moves = genMoves(false);
+      function chooseAIMove(w) {
+        w = !!w;
+        const moves = genMoves(w);
         const d = aiLevel == 3 && board.filter(Boolean).length <= 12 ? 4 : aiLevel;
         let best = null, bestV = -Infinity;
         for (const m of moves) {
           const backup = board.slice(), ep = enPassantSquare;
-          doSearchMove(m, false);
+          doSearchMove(m, w);
           enPassantSquare = null;
-          let v = -search(d - 1, -Infinity, -bestV + 1, true);
+          let v = -search(d - 1, -Infinity, -bestV + 1, !w);
           board = backup;
           enPassantSquare = ep;
           v += Math.random() * (aiLevel == 1 ? 150 : 5);
@@ -1598,34 +1602,35 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       function buildWorkerSrc() {
         const fns = [getPieceName, findKing, canSlide, canJump, isPromotionSquare, canPawnMove, isSquareAttacked,
           canCastle, isLegalMove, simulateMove, isSafeMove, canAttack, isKingInCheck, candTargets, genMoves,
-          doSearchMove, evalBoard, search, chooseAIMove];
+          doSearchMove, evalBoard, search, chooseAIMove, analyse];
         const consts = { KNIGHT_DIRS, BISHOP_DIRS, ROOK_DIRS, QUEEN_DIRS, KING_DIRS, CASTLE_SQUARES, PV };
         return (
           Object.keys(consts).map((k) => "const " + k + "=" + JSON.stringify(consts[k]) + ";").join("\n") +
           "\nlet board=[],enPassantSquare=null,castlingRights={},aiLevel=2;\n" +
           fns.map((f) => f.toString()).join("\n") +
           "\nonmessage=function(e){const d=e.data;board=d.board;enPassantSquare=d.ep;castlingRights=d.cr;aiLevel=d.level;" +
-          "const m=chooseAIMove();postMessage({id:d.id,f:m?m.f:-1,t:m?m.t:-1});};"
+          "if(d.an){postMessage(Object.assign({id:d.id,an:1},analyse(d.white,d.depth)));return;}const m=chooseAIMove(d.white);postMessage({id:d.id,f:m?m.f:-1,t:m?m.t:-1});};"
         );
       }
 
       function maybeAI() {
-        if (!vsAI || gameOver || turn != "black" || aiThinking || pendingPromotion) return;
+        if (!vsAI || gameOver || !aiTurn() || aiThinking || pendingPromotion) return;
         aiThinking = true;
         const gid = gameId, id = ++aiReq;
         updateInfo();
         const finish = function (f, t) {
           if (gid !== gameId || id !== aiReq) return;
           aiThinking = false;
-          if (f >= 0 && turn == "black" && !gameOver) {
-            movePiece(getPieceName(f), f, t, false);
+          if (f >= 0 && aiTurn() && !gameOver) {
+            movePiece(getPieceName(f), f, t, turn == "white");
             if (pendingPromotion) completePromotion(3);
           }
           drawBoard();
+          if (aiSide == "both") setTimeout(maybeAI, 350);
         };
         const fallback = function () {
           setTimeout(function () {
-            const m = chooseAIMove();
+            const m = chooseAIMove(turn == "white");
             finish(m ? m.f : -1, m ? m.t : -1);
           }, 30);
         };
@@ -1633,7 +1638,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
           if (!aiWorker) aiWorker = new Worker(URL.createObjectURL(new Blob([buildWorkerSrc()], { type: "text/javascript" })));
           aiWorker.onmessage = (e) => { if (e.data.id === id) finish(e.data.f, e.data.t); };
           aiWorker.onerror = () => { aiWorker = null; fallback(); };
-          aiWorker.postMessage({ id: aiReq, board: board, ep: enPassantSquare, cr: castlingRights, level: aiLevel });
+          aiWorker.postMessage({ id: aiReq, board: board, ep: enPassantSquare, cr: castlingRights, level: aiLevel, white: turn == "white" });
         } catch (err) {
           aiWorker = null;
           fallback();
@@ -1668,7 +1673,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
 
       piecesElement.addEventListener("pointerdown", function (e) {
         if (e.button !== 0 && e.pointerType === "mouse") return;
-        if (arrowMode || pendingPromotion || gameOver || aiThinking || (vsAI && turn == "black")) return;
+        if (arrowMode || pendingPromotion || gameOver || aiThinking || (vsAI && aiTurn())) return;
         const btn = e.target.closest(".piece");
         if (!btn) return;
         const sq = Number(btn.dataset.square);
@@ -2193,22 +2198,24 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         if (clk.on && sanList.length > lastLen && turn != lastTurn) clk[lastTurn == "white" ? "w" : "b"] += clk.inc;
         lastLen = sanList.length; lastTurn = turn; paintClock();
         let d = 0; board.forEach((q) => { if (q && Math.abs(q) != 2) d += Math.sign(q) * MV[Math.abs(q)]; });
-        $("mat").firstElementChild.style.width = 50 + Math.max(-45, Math.min(45, d * 5)) + "%";
+        if (!evalOn) $("mat").firstElementChild.style.width = 50 + Math.max(-45, Math.min(45, d * 5)) + "%";
         const kids = piecesElement.children;
         for (let i = 0; i < kids.length; i++) { const q = board[i]; kids[i].setAttribute("aria-label", "abcdefgh"[i % 8] + (8 - (i >> 3)) + ", " + (q ? (q > 0 ? "white " : "black ") + PN[Math.abs(q)] : "empty")); kids[i].tabIndex = kids[i] === rov ? 0 : -1; }
         updateOpening();
+        markHelp(); evalSoon();
+        if (puz.on && !puz.busy && sanList.length > puz.n) puzCheck();
         $("live").textContent = (sanList.length ? sanList[sanList.length - 1] + ". " : "") + $("turnLabel").textContent;
         const ec = $("endCard");
-        if (gameOver && !ec._shown) { ec._shown = true; if (!restoring) recordGame(); const r = gameOverReason || ""; $("endT").textContent = /White wins/.test(r) ? "White wins" : /Black wins/.test(r) ? "Black wins" : "Draw"; $("endR").textContent = r.replace(/\.$/, ""); ec.hidden = false; }
+        if (gameOver && !ec._shown) { ec._shown = true; if (!restoring && !puz.on) recordGame(); const r = gameOverReason || ""; $("endT").textContent = /White wins/.test(r) ? "White wins" : /Black wins/.test(r) ? "Black wins" : "Draw"; $("endR").textContent = r.replace(/\.$/, ""); ec.hidden = puz.on; }
         if (!gameOver) { ec._shown = false; ec.hidden = true; }
-        if (!restoring && !pendingPromotion && !net.on) { try { localStorage.setItem("chess_auto", JSON.stringify(gameOver ? null : { pgn: buildPGN(), mode: $("mode").value, tc: $("tc").value, flipped, clk: clk.on ? [clk.w, clk.b, clk.inc] : null })); } catch (e) {} }
+        if (!restoring && !pendingPromotion && !net.on && !puz.on) { try { localStorage.setItem("chess_auto", JSON.stringify(gameOver ? null : { pgn: buildPGN(), mode: $("mode").value, tc: $("tc").value, flipped, side: aiSide, clk: clk.on ? [clk.w, clk.b, clk.inc] : null })); } catch (e) {} }
       };
       $("rematch").onclick = () => { $("endCard").hidden = true; $("start").click(); };
       $("endClose").onclick = () => ($("endCard").hidden = true);
 
       // move navigation + keyboard
       function nav(to) {
-        if (aiThinking || pendingPromotion || net.on) return;
+        if (aiThinking || pendingPromotion || net.on || puz.on) return;
         const c = sanList.length, f = redoHistory.length && redoHistory[0].sanList ? redoHistory[0].sanList.length : c;
         const n = to == "first" ? 0 : to == "last" ? f : to == "prev" ? c - 1 : c + 1;
         if (n >= 0 && n <= f && n != c) jumpToPly(n);
@@ -2260,7 +2267,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       function recordGame() {
         if (sanList.length < 2) return;
         const r = gameOverReason || "", res = /White wins/.test(r) ? "1-0" : /Black wins/.test(r) ? "0-1" : "½-½";
-        try { const h = hist(); h.unshift({ t: Date.now(), res, ai: vsAI ? aiLevel : 0, n: sanList.length, o: openingName(), pgn: buildPGN() }); localStorage.setItem(HK, JSON.stringify(h.slice(0, 30))); } catch (e) {}
+        try { const h = hist(); h.unshift({ t: Date.now(), res, ai: vsAI && aiSide != "both" ? aiLevel : 0, me: aiSide == "white" ? "b" : "w", n: sanList.length, o: openingName(), pgn: buildPGN() }); localStorage.setItem(HK, JSON.stringify(h.slice(0, 30))); } catch (e) {}
       }
       function sheet(id, inner) {
         const old = $(id); if (old) old.remove();
@@ -2269,9 +2276,9 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         document.body.appendChild(o); return o;
       }
       function openHistory() {
-        const h = hist(), ai = h.filter((g) => g.ai), cnt = (r) => ai.filter((g) => g.res == r).length;
+        const h = hist(), ai = h.filter((g) => g.ai), you = (g) => (g.res == "½-½" ? "D" : (g.res == "1-0") == (g.me != "b") ? "W" : "L"), cnt = (r) => ai.filter((g) => you(g) == r).length;
         const rows = h.map((g, i) => '<div class="hrow" data-i="' + i + '"><span>' + new Date(g.t).toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " · " + (g.ai ? ["", "Easy", "Medium", "Hard"][g.ai] : "2 Players") + (g.o ? " · " + g.o : "") + "</span><b>" + g.res + "</b><i>" + Math.ceil(g.n / 2) + " moves</i></div>").join("");
-        const o = sheet("histSheet", "<h2>History</h2><div class=\"stats\">" + [["Wins", cnt("1-0")], ["Draws", cnt("½-½")], ["Losses", cnt("0-1")]].map(([a, b]) => '<div class="stat"><b>' + b + "</b>" + a + "</div>").join("")
+        const o = sheet("histSheet", "<h2>History</h2><div class=\"stats\">" + [["Wins", cnt("W")], ["Draws", cnt("D")], ["Losses", cnt("L")]].map(([a, b]) => '<div class="stat"><b>' + b + "</b>" + a + "</div>").join("")
           + '</div><div class="hnote">Against the computer · ' + h.length + " games saved</div><div class=\"hlist\">" + (rows || '<div class="hnote">No finished games yet.</div>') + '</div><div class="sgrid"><button class="ctl" id="hClear">Clear</button><button class="start" id="hDone">Done</button></div>');
         o.querySelector(".hlist").onclick = (e) => {
           const r = e.target.closest(".hrow"); if (!r) return;
@@ -2320,7 +2327,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         if (!soundOn || !audioReady()) return;
         if (kind == "tick") tick(0.25, 0.03, 2500);
         else if (kind == "end") {
-          const r = gameOverReason || "", lose = vsAI && /Black wins/.test(r);
+          const r = gameOverReason || "", lose = vsAI && aiSide != "both" && (aiSide == "black" ? /Black wins/ : /White wins/).test(r);
           knock(true); (/Draw/.test(r) ? [440, 415] : lose ? [392, 349, 294] : [392, 494, 587, 784]).forEach((f, i) => tone(f, f, 0.7, "triangle", 0.22, 0.15 + i * 0.12));
         } else _ps(kind);
       };
@@ -2382,7 +2389,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
         };
         $("gB").onclick = (e) => { const d = e.target.closest("div[data-r]"); if (!d || !d.querySelector("b")) return; gp.r = +d.dataset.r; gp.c = +d.dataset.c; if (gp.t == "p" && gp.r == 0) gp.r = 6; paint(); };
         $("gPrev").onclick = () => { gi--; draw(); };
-        $("gNext").onclick = () => { if (gi == GL[gl].length - 1) { $("mode").value = "1"; $("start").click(); o.remove(); } else { gi++; draw(); } };
+        $("gNext").onclick = () => { if (gi == GL[gl].length - 1) { if (sanList.length && !gameOver && !confirm("Start a new game? The current game will be lost.")) return; $("mode").value = "1"; $("start").click(); o.remove(); } else { gi++; draw(); } };
         $("gLang").onclick = () => { gl = gl == "ar" ? "en" : "ar"; try { localStorage.setItem("chess_gl", gl); } catch (e) {} draw(); };
         draw();
       }
@@ -2392,7 +2399,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       const net = { on: false, me: "white", pc: null, ch: null, sent: 0, applying: false, role: "" };
       function netSend(o) { try { if (net.ch && net.ch.readyState == "open") net.ch.send(JSON.stringify(o)); } catch (e) {} }
       function netUi(msg) {
-        ["undo", "redo", "mode", "tc"].forEach((id) => ($(id).disabled = net.on));
+        syncUi();
         $("lanBtn").textContent = net.on ? "LAN \u25CF" : "LAN";
         $("netInfo").textContent = msg || (net.on ? "LAN game \u00B7 you play " + net.me : "");
       }
@@ -2416,19 +2423,23 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
           if (m.t == "hi") netStart("black");
           else if (m.t == "new") { net.applying = true; net.sent = 0; $("start").click(); net.applying = false; }
           else if (m.t == "mv") netApply(m);
+          else if (m.t == "resign") endGame(cap1(net.me == "white" ? "black" : "white") + " resigned. " + cap1(net.me) + " wins");
+          else if (m.t == "draw") { if (confirm("Your opponent offers a draw. Accept?")) { netSend({ t: "drawok" }); endGame("Draw by agreement"); } else netSend({ t: "drawno" }); }
+          else if (m.t == "drawok") endGame("Draw by agreement");
+          else if (m.t == "drawno") $("netInfo").textContent = "Draw declined";
         };
         ch.onclose = () => { if (net.on) { net.on = false; netUi("Opponent disconnected"); } };
         if (ch.readyState == "open") ch.onopen();
       }
       $("start").addEventListener("click", (e) => {
-        if (!net.on || net.applying) return;
-        if (sanList.length && !gameOver && !confirm("Start a new game? Your opponent's board resets too.")) { e.stopImmediatePropagation(); return; }
-        net.sent = 0; netSend({ t: "new" });
+        if (net.applying) return;
+        if (e.isTrusted && sanList.length && !gameOver && !puz.on && !confirm(net.on ? "Start a new game? Your opponent's board resets too." : "Start a new game? The current game will be lost.")) { e.stopImmediatePropagation(); return; }
+        if (net.on) { net.sent = 0; netSend({ t: "new" }); }
       }, true);
       ["pointerdown", "click", "keydown"].forEach((ev) => piecesElement.addEventListener(ev, (e) => {
-        if (net.on && e.isTrusted && turn != net.me && (ev != "keydown" || e.key == "Enter" || e.key == " ")) { e.stopPropagation(); e.preventDefault(); }
+        if ((net.on || puz.on) && e.isTrusted && turn != (net.on ? net.me : puz.me) && (ev != "keydown" || e.key == "Enter" || e.key == " ")) { e.stopPropagation(); e.preventDefault(); }
       }, true));
-      const _jump = jumpToPly; jumpToPly = function (n) { if (!net.on) _jump(n); };
+      const _jump = jumpToPly; jumpToPly = function (n) { if (!net.on && !puz.on) _jump(n); };
 
       const b64 = (u) => btoa(String.fromCharCode(...u)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       const unb64 = (t) => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
@@ -2481,13 +2492,202 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       piecesElement.addEventListener("pointerup", () => { if (drag) swallowUntil = performance.now() + 300; }, true);
       piecesElement.addEventListener("click", (e) => { if (e.isTrusted && swallowUntil && performance.now() < swallowUntil) { swallowUntil = 0; e.stopPropagation(); e.preventDefault(); } }, true);
 
+      // ================= both sides, hint, eval bar, resign/draw, beginner help, puzzles =================
+      function aiTurn() { return aiSide == "both" || turn == aiSide; }
+      function cap1(x) { return x[0].toUpperCase() + x.slice(1); }
+      function rnd1(n) { return Math.floor(Math.random() * n); }
+      function sqn(i) { return "abcdefgh"[i % 8] + (8 - (i >> 3)); }
+      const SIDE_LBL = { black: "Play as: White", white: "Play as: Black", both: "Watch: CPU vs CPU" };
+      try { aiSide = localStorage.getItem("chess_side") || "black"; } catch (e) {}
+      function sideLabel() { $("sideBtn").textContent = SIDE_LBL[aiSide] || SIDE_LBL.black; }
+      function applySide() { if (vsAI) flipped = aiSide == "white"; }
+      function syncUi() {
+        const watch = vsAI && aiSide == "both", lock = net.on || puz.on || watch;
+        ["undo", "redo"].forEach((id) => ($(id).disabled = lock));
+        ["nav_first", "nav_prev", "nav_next", "nav_last"].forEach((id) => ($(id).disabled = net.on || puz.on));
+        ["mode", "tc", "sideBtn", "puzBtn"].forEach((id) => ($(id).disabled = net.on || puz.on));
+        $("puzBtn").disabled = net.on; $("resignBtn").disabled = $("drawBtn").disabled = puz.on || watch; $("hintBtn").disabled = watch;
+      }
+      $("mode").addEventListener("change", () => { applySide(); syncUi(); drawBoard(); });
+      $("start").addEventListener("click", () => { if (puz.on && !puz.loading) { puz.on = false; puzUi(); } applySide(); syncUi(); setTimeout(maybeAI, 60); });
+      $("sideBtn").onclick = () => {
+        if (sanList.length && !gameOver && !confirm("Change sides? The current game will restart.")) return;
+        aiSide = { black: "white", white: "both", both: "black" }[aiSide];
+        try { localStorage.setItem("chess_side", aiSide); } catch (e) {}
+        if ($("mode").value == "0") $("mode").value = "2";
+        sideLabel(); $("start").click();
+      };
+      function endGame(reason) { if (gameOver) return; gameOver = true; gameOverReason = reason; gameId++; aiThinking = false; drawBoard(); playSound("end"); }
+      $("resignBtn").onclick = () => {
+        if (gameOver) return;
+        const who = net.on ? net.me : vsAI ? (aiSide == "white" ? "black" : "white") : turn;
+        if (!confirm(vsAI || net.on ? "Resign this game?" : cap1(who) + " resigns?")) return;
+        if (net.on) netSend({ t: "resign" });
+        endGame(cap1(who) + " resigned. " + cap1(who == "white" ? "black" : "white") + " wins");
+      };
+      $("drawBtn").onclick = async () => {
+        if (gameOver || aiThinking) return;
+        if (net.on) { netSend({ t: "draw" }); $("netInfo").textContent = "Draw offered\u2026"; return; }
+        if (vsAI) {
+          $("netInfo").textContent = "Thinking\u2026";
+          const r = await ana(turn == "white", 2), adv = r ? (aiSide == "white" ? r.v : -r.v) : 0;
+          if (adv <= 30) endGame("Draw by agreement"); else $("netInfo").textContent = "The computer declined the draw.";
+          return;
+        }
+        if (confirm("Both players agree to a draw?")) endGame("Draw by agreement");
+      };
+
+      // analysis worker: hint + evaluation bar (shares the engine source with the computer opponent)
+      function analyse(w, d) {
+        const moves = genMoves(w); let best = null, bv = -Infinity;
+        for (const m of moves) {
+          const b = board.slice(), ep = enPassantSquare;
+          doSearchMove(m, w); enPassantSquare = null;
+          const v = -search(d - 1, -Infinity, -bv + 1, !w);
+          board = b; enPassantSquare = ep;
+          if (v > bv) { bv = v; best = m; }
+        }
+        return { f: best ? best.f : -1, t: best ? best.t : -1, v: best ? (w ? bv : -bv) : isKingInCheck(w) ? (w ? -100000 : 100000) : 0 };
+      }
+      let anaW = null, anaId = 0; const anaCb = {};
+      function ana(white, depth) {
+        return new Promise((ok) => {
+          try {
+            if (!anaW) {
+              anaW = new Worker(URL.createObjectURL(new Blob([buildWorkerSrc()], { type: "text/javascript" })));
+              anaW.onmessage = (e) => { const f = anaCb[e.data.id]; if (f) { delete anaCb[e.data.id]; f(e.data); } };
+              anaW.onerror = () => { anaW = null; };
+            }
+            const id = ++anaId; anaCb[id] = ok;
+            anaW.postMessage({ id, an: 1, board, ep: enPassantSquare, cr: castlingRights, white, depth, level: aiLevel });
+          } catch (e) { ok(analyse(white, Math.min(depth, 2))); }
+        });
+      }
+      $("hintBtn").onclick = async () => {
+        if (gameOver || aiThinking || pendingPromotion || (vsAI && aiTurn())) return;
+        $("netInfo").textContent = "Thinking\u2026"; const n = sanList.length;
+        const r = await ana(turn == "white", 3);
+        if (n != sanList.length) return;
+        if (!r || r.f < 0) { $("netInfo").textContent = ""; return; }
+        const k = getPositionKey(), list = arrowsByPos[k] || [];
+        if (!list.some((a) => a.f == r.f && a.t == r.t)) list.push({ f: r.f, t: r.t });
+        arrowsByPos[k] = list; renderArrows();
+        $("netInfo").textContent = "Hint: " + sqn(r.f) + " \u2192 " + sqn(r.t) + (Math.abs(r.v) > 90000 ? " (mate)" : "");
+      };
+      let evalOn = true, evalT = 0, evalSeq = 0, beg = false;
+      try { evalOn = localStorage.getItem("chess_eval") != "0"; beg = localStorage.getItem("chess_beg") == "1"; } catch (e) {}
+      function labels() { $("evalBtn").textContent = "Eval bar: " + (evalOn ? "On" : "Off"); $("begBtn").textContent = "Beginner help: " + (beg ? "On" : "Off"); }
+      $("evalBtn").onclick = () => { evalOn = !evalOn; try { localStorage.setItem("chess_eval", evalOn ? "1" : "0"); } catch (e) {} labels(); drawBoard(); };
+      $("begBtn").onclick = () => { beg = !beg; try { localStorage.setItem("chess_beg", beg ? "1" : "0"); } catch (e) {} labels(); drawBoard(); };
+      function evalSoon() {
+        clearTimeout(evalT); $("mat").style.display = puz.on ? "none" : "";
+        if (!evalOn || gameOver || puz.on) return;
+        const seq = ++evalSeq;
+        evalT = setTimeout(async () => {
+          if (aiThinking) return;
+          const r = await ana(turn == "white", 3); if (!r || seq !== evalSeq) return;
+          const mate = Math.abs(r.v) > 90000;
+          $("mat").firstElementChild.style.width = (mate ? (r.v > 0 ? 100 : 0) : 50 + 50 * Math.tanh(r.v / 700)) + "%";
+          $("mat").title = "Evaluation: " + (mate ? "mate" : (r.v > 0 ? "+" : "") + (r.v / 100).toFixed(1));
+        }, 250);
+      }
+
+      // beginner help: marks pieces that can be won for free, and moves that would hang the moving piece
+      function attackers(s, byWhite) {
+        const out = [];
+        for (let i = 0; i < 64; i++) { const p = board[i]; if (p && (p > 0) === byWhite && canAttack(i, s)) out.push(Math.abs(p) == 2 ? 10000 : PV[Math.abs(p)]); }
+        return out;
+      }
+      function hanging(s) {
+        const p = board[s], a = attackers(s, p < 0);
+        if (!a.length) return false;
+        board[s] = -p; const d = attackers(s, p > 0).length; board[s] = p;
+        return !d || Math.min(...a) < PV[Math.abs(p)];
+      }
+      function riskyMove(f, t) {
+        const p = board[f], w = p > 0, info = isSafeMove(getPieceName(f), f, t, w);
+        if (!info || Math.abs(p) == 2) return false;
+        const gain = board[t] ? PV[Math.abs(board[t])] : 0, b = board.slice(), ep = enPassantSquare;
+        doSearchMove({ f, t, info }, w);
+        const r = hanging(t) && PV[Math.abs(p)] > gain;
+        board = b; enPassantSquare = ep; return r;
+      }
+      function markHelp() {
+        if (!beg || gameOver || aiThinking || puz.on || (vsAI && aiTurn()) || (net.on && turn != net.me)) return;
+        const kids = piecesElement.children, w = turn == "white";
+        for (let i = 0; i < 64; i++) { const p = board[i]; if (p && (p > 0) == w && Math.abs(p) != 2 && hanging(i)) kids[i].classList.add("hang"); }
+        if (selectedSquare !== null) legalMoves.forEach((t) => { if (riskyMove(selectedSquare, t)) { const q = kids[t].querySelector(".legalSquare"); if (q) q.classList.add("risk"); } });
+      }
+
+      // puzzles (generated and verified with this same engine)
+      const PUZ = "8/5K1p/7k/7p/8/7Q/4N3/8|1;8/8/2N5/R7/8/p7/1n6/k1K5|1;k1B5/n1K5/1p6/5P2/8/8/8/8|1;8/8/4N3/8/Q7/1K6/np6/k7|1;3B4/1Q6/8/8/8/5K1k/5n1b/8|1;8/7b/5K1k/8/5p2/2B1R3/8/8|1;8/1R6/8/8/Kp6/8/k7/r1Q5|1;k7/rp6/1K4P1/8/8/8/7R/8|1;7k/3Q3p/7p/2R4K/8/8/8/8|1;k1K5/1n3Q2/2p5/8/8/8/8/2R5|1;5k2/4pp2/4p3/2K5/8/2Q5/8/7B|1;8/8/p6Q/8/k1p5/1RK5/1n6/8|1;2R5/5p2/5n1p/5K1k/8/2R5/8/8|1;6k1/2R3pp/7p/3K4/5Q2/8/8/8|1;8/4P1p1/6rk/3R4/6pK/8/8/8|1;8/8/4Q1B1/8/4K3/7p/5p2/6rk|1;8/1K6/8/p7/7R/k7/npB5/8|1;8/p7/2p5/k1K5/1p6/2N5/5Q2/8|1;3k4/1K1p4/1p2nP2/3P4/8/8/7Q/8|1;8/6r1/5KNk/6p1/1R3p2/8/8/4R3|1;4k2K/8/2p4R/8/8/R7/8/4N3|2;5k2/P7/Q5p1/8/4K3/8/2P5/8|2;8/1R6/2r5/1pp5/k7/2K5/8/8|2;8/k1p5/1p1Q4/1K6/8/8/6R1/8|2;4K1Q1/8/8/7k/5rpp/8/6N1/8|2;8/7R/8/6R1/3N1K1n/6pk/8/8|2;2K2k2/7p/6pp/R7/8/1Q6/8/8|2;8/8/8/7B/1R3K2/7p/6pp/7k|2;2K5/8/2p5/4R3/k7/1p6/8/3NR3|2;8/8/8/6p1/3Q1p2/7k/5n2/3B2K1|2".split(";").map((x) => x.split("|"));
+      const puz = { on: false, i: 0, left: 1, n: 0, me: "white", busy: false, loading: false, streak: 0, best: 0, failed: false };
+      try { const q = JSON.parse(localStorage.getItem("chess_puz") || "{}"); puz.i = (q.i | 0) % PUZ.length; puz.streak = q.streak | 0; puz.best = q.best | 0; } catch (e) {}
+      const puzSave = () => { try { localStorage.setItem("chess_puz", JSON.stringify({ i: puz.i, streak: puz.streak, best: puz.best })); } catch (e) {} };
+      function puzUi(msg) {
+        $("tools1").hidden = puz.on; $("puzBar").hidden = !puz.on; syncUi();
+        $("netInfo").textContent = msg || (puz.on ? "Puzzle " + (puz.i + 1) + "/" + PUZ.length + " \u00B7 Mate in " + PUZ[puz.i][1] + " \u00B7 Streak " + puz.streak + " \u00B7 Best " + puz.best : "");
+      }
+      function mateMoves(w) {
+        const out = [];
+        for (const m of genMoves(w)) {
+          const b = board.slice(), ep = enPassantSquare; doSearchMove(m, w); enPassantSquare = null;
+          if (isKingInCheck(!w) && !genMoves(!w).length) out.push(m);
+          board = b; enPassantSquare = ep;
+        }
+        return out;
+      }
+      function forced2(oppW) {
+        const rs = genMoves(oppW); if (!rs.length) return false;
+        for (const r of rs) {
+          const b = board.slice(), ep = enPassantSquare; doSearchMove(r, oppW); enPassantSquare = null;
+          const ok = mateMoves(!oppW).length > 0; board = b; enPassantSquare = ep;
+          if (!ok) return false;
+        }
+        return true;
+      }
+      function puzLoad() {
+        const q = PUZ[puz.i]; puz.on = true; puz.loading = true; puz.busy = false;
+        $("mode").value = "0"; readMode(); $("start").click();
+        const err = loadFEN(q[0] + " w - - 0 1"); puz.loading = false;
+        if (err) { puz.on = false; puzUi(); return; }
+        puz.left = Number(q[1]); puz.me = "white"; flipped = false; puz.n = sanList.length;
+        drawBoard(); puzUi();
+      }
+      function puzCheck() {
+        puz.n = sanList.length;
+        if (gameOver && /checkmate/i.test(gameOverReason || "")) {
+          if (!puz.failed) puz.streak++;
+          puz.best = Math.max(puz.best, puz.streak); puzSave(); puzUi("Solved \u2713 \u00B7 Streak " + puz.streak); return;
+        }
+        if (!gameOver && puz.left == 2 && forced2(turn == "white")) {
+          puz.left = 1; puz.busy = true;
+          const rs = genMoves(turn == "white"), m = rs[rnd1(rs.length)];
+          setTimeout(() => {
+            movePiece(getPieceName(m.f), m.f, m.t, turn == "white"); if (pendingPromotion) completePromotion(3);
+            puz.n = sanList.length; puz.busy = false; drawBoard(); puzUi("Good! Now find the mate");
+          }, 650);
+          return;
+        }
+        puz.streak = 0; puz.failed = true; puz.busy = true; puzSave(); puzUi("Not quite \u2014 try again");
+        setTimeout(() => { puz.busy = false; puzLoad(); }, 1000);
+      }
+      $("puzBtn").onclick = () => {
+        if (net.on) return;
+        if (!puz.on && sanList.length && !gameOver && !confirm("Leave the current game for puzzles? It will be lost.")) return;
+        puz.failed = false; puzLoad();
+      };
+      $("puzRetry").onclick = () => { puz.failed = true; puzLoad(); };
+      $("puzNext").onclick = () => { puz.i = (puz.i + 1) % PUZ.length; puz.failed = false; puzSave(); puzLoad(); };
+      $("puzExit").onclick = () => { puz.on = false; puzUi(); $("start").click(); };
+
       drawBoard();
       fitScreen();
       // restore: shared link first, then autosave
       try {
         const h = location.hash.match(/^#g=([\w-]+)/); let pgn = null, a = null;
         if (h) pgn = decodeURIComponent(escape(atob(h[1].replace(/-/g, "+").replace(/_/g, "/"))));
-        else { a = JSON.parse(localStorage.getItem("chess_auto") || "null"); if (a) { pgn = a.pgn; $("mode").value = a.mode; $("tc").value = a.tc || "off"; flipped = !!a.flipped; } }
+        else { a = JSON.parse(localStorage.getItem("chess_auto") || "null"); if (a) { pgn = a.pgn; $("mode").value = a.mode; $("tc").value = a.tc || "off"; flipped = !!a.flipped; aiSide = a.side || "black"; } }
         if (pgn) {
           restoring = true; readMode();
           const err = importPGN(pgn);
@@ -2501,6 +2701,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       } catch (e) {}
       restoring = false;
       drawBoard();
+      sideLabel(); labels();
       try { if (!localStorage.getItem("chess_guide") && !sanList.length) { localStorage.setItem("chess_guide", "1"); openGuide(); } } catch (e) {}
 
     </script>
