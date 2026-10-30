@@ -112,6 +112,13 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
 .gdots span{width:7px;height:7px;border-radius:50%;background:var(--fill2);transition:width .4s var(--ease),background-color .3s}.gdots .on{width:18px;border-radius:4px;background:var(--accent)}
 .sheet textarea{width:100%;font:11px/1.35 var(--mono);resize:none}
 .tools[hidden]{display:none}
+.askWrap{align-items:center;z-index:4000}
+.askCard{width:min(300px,86vw);padding:22px 18px 16px;border-radius:22px;background:var(--solid);color:var(--text);border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.35);text-align:center;animation:pop .45s var(--ease)}
+.askCard p{margin:0 0 16px;font:600 15px/1.5 var(--font)}
+.askCard textarea{width:100%;margin:0 0 12px;padding:8px 10px;border:0;border-radius:10px;background:var(--fill);color:var(--text);font:11px/1.35 var(--mono);resize:none;user-select:text;-webkit-user-select:text}
+.askBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}.askBtns .ctl,.askBtns .start{height:42px;font-size:15px}
+.ctl.danger{background-color:#ff3b30;color:#fff}.ctl.danger:hover{background-color:#ff3b30;filter:brightness(1.08)}
+.piece.pmSel{background-color:rgba(10,132,255,.35)}.piece.pmFrom{background-color:rgba(175,82,222,.3)}.piece.pmTo{background-color:rgba(175,82,222,.4);box-shadow:inset 0 0 0 3px rgba(175,82,222,.85)}
 [dir=rtl] .board,[dir=rtl] #moveList,[dir=rtl] #coords,[dir=rtl] .gb,[dir=rtl] .nav{direction:ltr}
 [dir=rtl] select.ctl{background-position:left 12px center;padding:0 12px 0 30px;text-align:right}
 [dir=rtl] .sheet{text-align:right}[dir=rtl] .mv[data-q]::after{margin:0 0 0 2px}
@@ -160,7 +167,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
       <button id="theme" class="ctl">Theme: Classic</button><button id="setBtn" class="ctl">Pieces: Soft</button>
       <button id="soundBtn" class="ctl">Sound: On</button>
       <button id="save" class="ctl save">Save Game</button><button id="load" class="ctl load">Load Game</button><button id="histBtn" class="ctl">History</button>
-      <select id="tc" class="ctl" aria-label="Time control"><option value="off">Time: Off</option><option value="3+2">Time: 3+2</option><option value="5+3">Time: 5+3</option><option value="10+0">Time: 10+0</option><option value="15+10">Time: 15+10</option></select><button id="sideBtn" class="ctl">Play as: White</button><button id="begBtn" class="ctl">Beginner help: Off</button><button id="evalBtn" class="ctl">Eval bar: On</button><button id="guideBtn" class="ctl">How to play</button><button id="shareImg" class="ctl">Share as image</button><button id="langBtn" class="ctl">🌐 العربية</button><button id="clearArrows" class="ctl">Clear arrows</button><button id="arrowBtn" class="ctl">Draw Arrows: Off</button><button id="closeSettings" class="start" style="grid-column:1/-1">Done</button></div></div></div>
+      <select id="tc" class="ctl" aria-label="Time control"><option value="off">Time: Off</option><option value="3+2">Time: 3+2</option><option value="5+3">Time: 5+3</option><option value="10+0">Time: 10+0</option><option value="15+10">Time: 15+10</option></select><button id="sideBtn" class="ctl">Play as: White</button><button id="begBtn" class="ctl">Beginner help: Off</button><button id="evalBtn" class="ctl">Eval bar: On</button><button id="guideBtn" class="ctl">How to play</button><button id="aqBtn" class="ctl">Auto-queen: Off</button><button id="pmBtn" class="ctl">Premove: Off</button><button id="shareImg" class="ctl">Share as image</button><button id="langBtn" class="ctl">🌐 العربية</button><button id="clearArrows" class="ctl">Clear arrows</button><button id="arrowBtn" class="ctl">Draw Arrows: Off</button><button id="closeSettings" class="start" style="grid-column:1/-1">Done</button></div></div></div>
     <div id="sendBar" hidden><span id="sendTxt"></span><button id="sendGo" class="start">Send link</button><button id="sendCopy" class="ctl">Copy</button></div><div id="live" class="sr" aria-live="polite"></div>
     <script>
       let selectedSquare = null;
@@ -803,6 +810,7 @@ body[data-theme="mono"]{--bg:#f0f0f0;--panel:rgba(255,255,255,.8);--solid:#fff;-
           saveState();
         }
 
+        if (aq) { setTimeout(() => { if (pendingPromotion) completePromotion(3); }, 0); return; }
         const existing = document.getElementById("promotionOverlay");
         if (existing) existing.remove();
 
@@ -2290,7 +2298,7 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
         updateOpening(); trackUci();
         if (link.on && sanList.length > link.sent && (turn != link.me || gameOver)) { link.sent = sanList.length; linkBar(1); }
         if (review.q) document.querySelectorAll("#moveList .mv").forEach((e) => { const v = review.q[e.dataset.k]; if (v) e.dataset.q = v; });
-        markHelp(); evalSoon();
+        markHelp(); evalSoon(); pmStep();
         if (puz.on && !puz.busy && sanList.length > puz.n) puzCheck();
         { const tl = $("turnLabel").textContent; $("live").textContent = (sanList.length ? sanList[sanList.length - 1] + ". " : "") + (lang == "ar" ? tr(tl) || tl : tl); }
         const ec = $("endCard");
@@ -2328,7 +2336,7 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
       // share link
       $("share").addEventListener("click", () => {
         const url = location.href.split("#")[0] + "#g=" + btoa(unescape(encodeURIComponent(buildPGN()))).replace(/\+/g, "-").replace(/\//g, "_"), b = $("share");
-        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => { b.textContent = "Copied"; setTimeout(() => (b.textContent = "Share"), 1500); }, () => prompt("Copy this link", url));
+        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => { b.textContent = "Copied"; setTimeout(() => (b.textContent = "Share"), 1500); }, () => askCopy(url));
       });
 
       // ================= history, openings, share image, haptics =================
@@ -2368,9 +2376,9 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
         const rows = h.map((g, i) => '<div class="hrow" data-i="' + i + '"><span>' + new Date(g.t).toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " · " + (g.ai ? ["", "Easy", "Medium", "Hard"][g.ai] : "2 Players") + (g.o ? " · " + g.o : "") + "</span><b>" + g.res + "</b><i>" + Math.ceil(g.n / 2) + " moves</i></div>").join("");
         const o = sheet("histSheet", "<h2>History</h2><div class=\"stats\">" + [["Wins", cnt("W")], ["Draws", cnt("D")], ["Losses", cnt("L")]].map(([a, b]) => '<div class="stat"><b>' + b + "</b>" + a + "</div>").join("")
           + '</div><div class="hnote">Against the computer · ' + h.length + " games saved</div><div class=\"hlist\">" + (rows || '<div class="hnote">No finished games yet.</div>') + '</div><div class="sgrid"><button class="ctl" id="hClear">Clear</button><button class="start" id="hDone">Done</button></div>');
-        o.querySelector(".hlist").onclick = (e) => {
+        o.querySelector(".hlist").onclick = async (e) => {
           const r = e.target.closest(".hrow"); if (!r) return;
-          if (sanList.length && !gameOver && !confirm("Replace the current game?")) return;
+          if (sanList.length && !gameOver && !(await ask("Replace the current game?", "Replace", "Cancel", true))) return;
           restoring = true; const err = importPGN(hist()[r.dataset.i].pgn); restoring = false;
           if (!err) { stg.hidden = true; o.remove(); drawBoard(); }
         };
@@ -2477,7 +2485,7 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
         };
         $("gB").onclick = (e) => { const d = e.target.closest("div[data-r]"); if (!d || !d.querySelector("b")) return; gp.r = +d.dataset.r; gp.c = +d.dataset.c; if (gp.t == "p" && gp.r == 0) gp.r = 6; paint(); };
         $("gPrev").onclick = () => { gi--; draw(); };
-        $("gNext").onclick = () => { if (gi == GL[gl].length - 1) { if (sanList.length && !gameOver && !confirm("Start a new game? The current game will be lost.")) return; $("mode").value = "1"; $("start").click(); o.remove(); } else { gi++; draw(); } };
+        $("gNext").onclick = async () => { if (gi == GL[gl].length - 1) { if (sanList.length && !gameOver && !(await ask("Start a new game? The current game will be lost.", "Start", "Cancel", true))) return; $("mode").value = "1"; $("start").click(); o.remove(); } else { gi++; draw(); } };
         $("gLang").onclick = () => { setLang(gl == "ar" ? "en" : "ar"); draw(); };
         draw();
       }
@@ -2512,7 +2520,7 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
           else if (m.t == "new") { net.applying = true; net.sent = 0; $("start").click(); net.applying = false; }
           else if (m.t == "mv") netApply(m);
           else if (m.t == "resign") endGame(cap1(net.me == "white" ? "black" : "white") + " resigned. " + cap1(net.me) + " wins");
-          else if (m.t == "draw") { if (confirm("Your opponent offers a draw. Accept?")) { netSend({ t: "drawok" }); endGame("Draw by agreement"); } else netSend({ t: "drawno" }); }
+          else if (m.t == "draw") { ask("Your opponent offers a draw. Accept?", "Accept", "Decline").then((ok) => { if (ok) { netSend({ t: "drawok" }); endGame("Draw by agreement"); } else netSend({ t: "drawno" }); }); }
           else if (m.t == "drawok") endGame("Draw by agreement");
           else if (m.t == "drawno") $("netInfo").textContent = "Draw declined";
         };
@@ -2521,10 +2529,20 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
       }
       $("start").addEventListener("click", (e) => {
         if (net.applying) return;
-        if (e.isTrusted && sanList.length && !gameOver && !puz.on && !confirm(net.on ? "Start a new game? Your opponent's board resets too." : "Start a new game? The current game will be lost.")) { e.stopImmediatePropagation(); return; }
+        if (e.isTrusted && sanList.length && !gameOver && !puz.on) {
+          e.stopImmediatePropagation(); e.preventDefault();
+          ask(net.on ? "Start a new game? Your opponent's board resets too." : "Start a new game? The current game will be lost.", "New Game", "Cancel", true).then((ok) => { if (ok) $("start").click(); });
+          return;
+        }
         if (net.on) { net.sent = 0; netSend({ t: "new" }); }
       }, true);
       ["pointerdown", "click", "keydown"].forEach((ev) => piecesElement.addEventListener(ev, (e) => {
+        const act = ev == "keydown" ? e.key == "Enter" : e.button === 0;
+        if (e.isTrusted && act && pmReady()) {
+          e.stopPropagation(); e.preventDefault();
+          if (ev != "pointerdown") { const b = e.target.closest && e.target.closest("button"); if (b && b.id !== "") pmClick(Number(b.id)); }
+          return;
+        }
         if ((net.on || puz.on || link.on) && e.isTrusted && turn != (net.on ? net.me : puz.on ? puz.me : link.me) && (ev != "keydown" || e.key == "Enter" || e.key == " ")) { e.stopPropagation(); e.preventDefault(); }
       }, true));
       const _jump = jumpToPly; jumpToPly = function (n) { if (!lockedNav()) _jump(n); };
@@ -2617,19 +2635,19 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
         $("puzBtn").disabled = net.on; $("resignBtn").disabled = $("drawBtn").disabled = puz.on || watch; $("hintBtn").disabled = watch; $("drawBtn").disabled = $("drawBtn").disabled || link.on; $("revBtn").disabled = net.on || puz.on;
       }
       $("mode").addEventListener("change", () => { applySide(); syncUi(); drawBoard(); });
-      $("start").addEventListener("click", () => { if (puz.on && !puz.loading) { puz.on = false; puzUi(); } review.q = null; if (link.on) { link.on = false; linkBar(0); } applySide(); syncUi(); setTimeout(maybeAI, 60); });
-      $("sideBtn").onclick = () => {
-        if (sanList.length && !gameOver && !confirm("Change sides? The current game will restart.")) return;
+      $("start").addEventListener("click", () => { if (puz.on && !puz.loading) { puz.on = false; puzUi(); } review.q = null; pm = null; pmSel = null; pmBusy = false; if (link.on) { link.on = false; linkBar(0); } applySide(); syncUi(); setTimeout(maybeAI, 60); });
+      $("sideBtn").onclick = async () => {
+        if (sanList.length && !gameOver && !(await ask("Change sides? The current game will restart.", "Restart", "Cancel", true))) return;
         aiSide = { black: "white", white: "both", both: "black" }[aiSide];
         try { localStorage.setItem("chess_side", aiSide); } catch (e) {}
         if ($("mode").value == "0") $("mode").value = "2";
         sideLabel(); $("start").click();
       };
       function endGame(reason) { if (gameOver) return; gameOver = true; gameOverReason = reason; gameId++; aiThinking = false; drawBoard(); playSound("end"); }
-      $("resignBtn").onclick = () => {
+      $("resignBtn").onclick = async () => {
         if (gameOver) return;
         const who = net.on ? net.me : link.on ? link.me : vsAI ? (aiSide == "white" ? "black" : "white") : turn;
-        if (!confirm(vsAI || net.on || link.on ? "Resign this game?" : cap1(who) + " resigns?")) return;
+        if (!(await ask(vsAI || net.on || link.on ? "Resign this game?" : cap1(who) + " resigns?", "Resign", "Cancel", true))) return;
         if (net.on) netSend({ t: "resign" });
         endGame(cap1(who) + " resigned. " + cap1(who == "white" ? "black" : "white") + " wins"); if (link.on) linkBar(1);
       };
@@ -2642,7 +2660,7 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
           if (adv <= 30) endGame("Draw by agreement"); else $("netInfo").textContent = "The computer declined the draw.";
           return;
         }
-        if (confirm("Both players agree to a draw?")) endGame("Draw by agreement");
+        if (await ask("Both players agree to a draw?", "Draw", "Cancel")) endGame("Draw by agreement");
       };
 
       // analysis worker: hint + evaluation bar (shares the engine source with the computer opponent)
@@ -2678,7 +2696,7 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
       };
       let evalOn = true, evalT = 0, evalSeq = 0, beg = false;
       try { evalOn = localStorage.getItem("chess_eval") != "0"; beg = localStorage.getItem("chess_beg") == "1"; } catch (e) {}
-      function labels() { $("evalBtn").textContent = "Eval bar: " + (evalOn ? "On" : "Off"); $("begBtn").textContent = "Beginner help: " + (beg ? "On" : "Off"); }
+      function labels() { $("evalBtn").textContent = "Eval bar: " + (evalOn ? "On" : "Off"); $("begBtn").textContent = "Beginner help: " + (beg ? "On" : "Off"); $("aqBtn").textContent = "Auto-queen: " + (aq ? "On" : "Off"); $("pmBtn").textContent = "Premove: " + (pmOn ? "On" : "Off"); }
       $("evalBtn").onclick = () => { evalOn = !evalOn; try { localStorage.setItem("chess_eval", evalOn ? "1" : "0"); } catch (e) {} labels(); drawBoard(); };
       $("begBtn").onclick = () => { beg = !beg; try { localStorage.setItem("chess_beg", beg ? "1" : "0"); } catch (e) {} labels(); drawBoard(); };
       function evalSoon() {
@@ -2775,9 +2793,9 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
           $("netInfo").textContent = "Rush " + Math.floor(left / 60000) + ":" + (sx < 10 ? "0" : "") + sx + " \u00B7 " + puz.rush.solved + " solved \u00B7 " + "\u2717".repeat(puz.rush.strikes);
         }, 250);
       }
-      function puzStart(mode) {
+      async function puzStart(mode) {
         if (net.on) return;
-        if (!puz.on && sanList.length && !gameOver && !confirm("Leave the current game for puzzles? It will be lost.")) return;
+        if (!puz.on && sanList.length && !gameOver && !(await ask("Leave the current game for puzzles? It will be lost.", "Continue", "Cancel"))) return;
         link.on = false; linkBar(0); puz.mode = mode; puz.failed = false; puz.rush = null;
         if (mode == "train") puz.i = puz.t % PUZ.length;
         else if (mode == "daily") puz.i = (dayNum() * 7919) % PUZ.length;
@@ -2890,15 +2908,15 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
       $("sendGo").onclick = async () => {
         const url = linkUrl();
         try { if (navigator.share) await navigator.share({ title: "Chess", text: "Your move!", url }); else await navigator.clipboard.writeText(url); linkBar(2); }
-        catch (e) { if (e && e.name == "AbortError") return; prompt("Copy this link", url); linkBar(2); }
+        catch (e) { if (e && e.name == "AbortError") return; askCopy(url); linkBar(2); }
       };
       $("sendCopy").onclick = async () => {
         const url = linkUrl();
-        try { await navigator.clipboard.writeText(url); $("sendCopy").textContent = "Copied"; setTimeout(() => ($("sendCopy").textContent = "Copy"), 1200); } catch (e) { prompt("Copy this link", url); }
+        try { await navigator.clipboard.writeText(url); $("sendCopy").textContent = "Copied"; setTimeout(() => ($("sendCopy").textContent = "Copy"), 1200); } catch (e) { askCopy(url); }
       };
-      function linkStart(me) {
+      async function linkStart(me) {
         if (net.on) return;
-        if (sanList.length && !gameOver && !confirm("Start a new online game? The current game will be lost.")) return;
+        if (sanList.length && !gameOver && !(await ask("Start a new online game? The current game will be lost.", "Start", "Cancel", true))) return;
         puz.on = false; clearInterval(rushT); puz.rush = null; puzUi();
         $("mode").value = "0"; readMode(); $("tc").value = "off"; $("start").click();
         link.on = true; link.me = me; link.sent = 0; flipped = me == "black"; syncUi(); drawBoard();
@@ -2938,13 +2956,16 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
         "(current game shown; paste a PGN to import)": "(اللعبة الحالية معروضة؛ الصق PGN لاستيراده)", "Load FEN": "تحميل FEN", "Copy FEN": "نسخ FEN", "Import": "استيراد", "Open file": "فتح ملف", "Download": "تنزيل",
         "A FEN needs at least the board and the side to move.": "الـ FEN محتاج اللوحة والجهة اللي عليها الدور على الأقل.", "The FEN board must have 8 ranks.": "لوحة الـ FEN لازم تكون 8 صفوف.",
         "Every FEN rank must add up to 8 squares.": "كل صف في الـ FEN لازم يساوي 8 مربعات.", "The FEN needs exactly one king per side.": "الـ FEN لازم يكون فيه ملك واحد لكل جهة.",
-        "Game": "اللعبة", "Controls": "التحكم", "Game mode": "نمط اللعب", "Time control": "التحكم بالوقت", "First move": "أول نقلة", "Previous move": "النقلة السابقة", "Next move": "النقلة التالية", "Last move": "آخر نقلة"
+        "Game": "اللعبة", "Controls": "التحكم", "Game mode": "نمط اللعب", "Time control": "التحكم بالوقت", "First move": "أول نقلة", "Previous move": "النقلة السابقة", "Next move": "النقلة التالية", "Last move": "آخر نقلة",
+        "OK": "موافق", "Cancel": "إلغاء", "Continue": "متابعة", "Restart": "إعادة البدء", "Replace": "استبدال", "Accept": "قبول", "Decline": "رفض", "Start": "ابدأ",
+        "Premove cancelled": "اتلغت النقلة المسبقة", "The premove is no longer possible.": "النقلة المسبقة مبقتش ممكنة."
       };
       const ONOFF = (x) => (x == "On" ? "يعمل" : "مغلق"), SIDE = { White: "الأبيض", Black: "الأسود", white: "الأبيض", black: "الأسود" };
       const MONTH = { Jan: "يناير", Feb: "فبراير", Mar: "مارس", Apr: "أبريل", May: "مايو", Jun: "يونيو", Jul: "يوليو", Aug: "أغسطس", Sep: "سبتمبر", Oct: "أكتوبر", Nov: "نوفمبر", Dec: "ديسمبر" };
       const PIECE = { pawn: "بيدق", knight: "حصان", bishop: "فيل", rook: "طابية", queen: "وزير", king: "ملك" };
       const THEME = { Classic: "كلاسيك", Dark: "داكن", Ocean: "محيط", Sunset: "غروب", Forest: "غابة", Mono: "أحادي", Soft: "ناعم" };
       const ARP = [
+        [/^Auto-queen: (On|Off)$/, (m) => "ترقية تلقائية للوزير: " + ONOFF(m[1])], [/^Premove: (On|Off)$/, (m) => "النقلة المسبقة: " + ONOFF(m[1])], [/^Premove: (.+)$/, (m) => "نقلة مسبقة: " + m[1]],
         [/^Theme: (.+)$/, (m) => "المظهر: " + (THEME[m[1]] || m[1])], [/^Pieces: (.+)$/, (m) => "القطع: " + (THEME[m[1]] || m[1])],
         [/^Sound: (On|Off)$/, (m) => "الصوت: " + ONOFF(m[1])], [/^Draw Arrows: (On|Off)$/, (m) => "رسم الأسهم: " + ONOFF(m[1])],
         [/^Beginner help: (On|Off)$/, (m) => "مساعدة المبتدئ: " + ONOFF(m[1])], [/^Eval bar: (On|Off)$/, (m) => "شريط التقييم: " + ONOFF(m[1])],
@@ -3021,6 +3042,67 @@ const PST = {1: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10
       const _confirm = window.confirm.bind(window), _prompt = window.prompt.bind(window);
       window.confirm = (m) => _confirm(lang == "ar" ? tr(String(m)) || m : m);
       window.prompt = (m, d) => _prompt(lang == "ar" ? tr(String(m)) || m : m, d);
+
+      // ================= Apple-style confirmation cards, auto-queen and premove =================
+      function ask(msg, ok, cancel, danger) {
+        return new Promise((res) => {
+          const old = $("askSheet"); if (old) old.remove();
+          const prev = document.activeElement, o = document.createElement("div");
+          o.className = "overlay askWrap"; o.id = "askSheet"; o.setAttribute("role", "alertdialog"); o.setAttribute("aria-modal", "true");
+          o.innerHTML = '<div class="askCard"><p id="askMsg"></p><div class="askBtns"><button class="ctl" id="askNo"></button><button class="' + (danger ? "ctl danger" : "start") + '" id="askOk"></button></div></div>';
+          document.body.appendChild(o);
+          $("askMsg").textContent = msg; $("askOk").textContent = ok || "OK"; $("askNo").textContent = cancel || "Cancel";
+          const done = (v) => { document.removeEventListener("keydown", key, true); o.remove(); try { if (prev && prev.focus) prev.focus(); } catch (e) {} res(v); };
+          const key = (e) => { if (e.key == "Escape") { e.stopPropagation(); e.preventDefault(); done(false); } };
+          document.addEventListener("keydown", key, true);
+          $("askOk").onclick = () => done(true); $("askNo").onclick = () => done(false);
+          o.addEventListener("click", (e) => { if (e.target === o) done(false); });
+          $("askOk").focus();
+        });
+      }
+      function askCopy(text) {
+        const o = document.createElement("div"); o.className = "overlay askWrap"; o.id = "askSheet";
+        o.innerHTML = '<div class="askCard"><p id="askMsg"></p><textarea readonly rows="3" id="askTxt" spellcheck="false"></textarea><div class="askBtns" style="grid-template-columns:1fr"><button class="start" id="askOk"></button></div></div>';
+        document.body.appendChild(o); $("askMsg").textContent = "Copy this link"; $("askOk").textContent = "Done"; $("askTxt").value = text;
+        const close = () => o.remove(); $("askOk").onclick = close; o.addEventListener("click", (e) => { if (e.target === o) close(); });
+        $("askTxt").focus(); $("askTxt").select();
+      }
+
+      let aq = false, pmOn = false, pm = null, pmSel = null, pmBusy = false;
+      try { aq = localStorage.getItem("chess_aq") == "1"; pmOn = localStorage.getItem("chess_pm") == "1"; } catch (e) {}
+      $("aqBtn").onclick = () => { aq = !aq; try { localStorage.setItem("chess_aq", aq ? "1" : "0"); } catch (e) {} labels(); };
+      $("pmBtn").onclick = () => { pmOn = !pmOn; try { localStorage.setItem("chess_pm", pmOn ? "1" : "0"); } catch (e) {} if (!pmOn) { pm = null; pmSel = null; } labels(); drawBoard(); };
+      function userTurn() { return (vsAI && aiSide != "both" && !aiTurn()) || (net.on && turn == net.me); }
+      function pmReady() { return pmOn && !gameOver && !puz.on && !link.on && !pendingPromotion && ((vsAI && aiSide != "both" && aiTurn()) || (net.on && turn != net.me)); }
+      function pmClick(i) {
+        const p = board[i], meW = vsAI ? aiSide != "white" : net.me == "white", own = p && (p > 0) == meW;
+        if (pmSel !== null) {
+          if (i === pmSel) pmSel = null;
+          else if (own) pmSel = i;
+          else { pm = { f: pmSel, t: i }; pmSel = null; $("netInfo").textContent = "Premove: " + sqn(pm.f) + " \u2192 " + sqn(pm.t); }
+        } else if (pm && (i === pm.f || i === pm.t)) { pm = null; $("netInfo").textContent = "Premove cancelled"; }
+        else if (own) pmSel = i;
+        drawBoard();
+      }
+      function execPremove() {
+        pmBusy = true; const m = pm;
+        setTimeout(() => {
+          pmBusy = false; if (pm !== m) return; pm = null;
+          const w = turn == "white", p = board[m.f];
+          if (gameOver || !userTurn() || !p || (p > 0) != w || !isSafeMove(getPieceName(m.f), m.f, m.t, w)) { $("netInfo").textContent = "The premove is no longer possible."; drawBoard(); return; }
+          $(String(m.f)).click(); $(String(m.t)).click();
+        }, 160);
+      }
+      function pmStep() {
+        if (gameOver || (!vsAI && !net.on) || puz.on || link.on) { pm = null; pmSel = null; }
+        else if (pm && !pmBusy && userTurn() && !aiThinking && !pendingPromotion) execPremove();
+        else if (!pmReady()) pmSel = null;
+        const kids = piecesElement.children;
+        if (pmSel !== null && kids[pmSel]) kids[pmSel].classList.add("pmSel");
+        if (pm && kids[pm.f] && kids[pm.t]) { kids[pm.f].classList.add("pmFrom"); kids[pm.t].classList.add("pmTo"); }
+      }
+      ["undo", "redo"].forEach((id) => $(id).addEventListener("click", () => { pm = null; pmSel = null; }, true));
+      document.addEventListener("keydown", (e) => { if (e.key == "Escape" && (pm || pmSel !== null)) { pm = null; pmSel = null; drawBoard(); } });
 
       drawBoard();
       fitScreen();
