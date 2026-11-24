@@ -1,0 +1,40 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "lobby": {
+      ".read": true,
+      "$room": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['n', 'tc', 't'])",
+        "n": { ".validate": "newData.isString() && newData.val().length <= 16" },
+        "tc": { ".validate": "newData.isString() && newData.val().length <= 8" },
+        "lk": { ".validate": "newData.isBoolean()" },
+        "t": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+        "ph": { ".validate": "newData.isString() && newData.val().length <= 80" },
+        "g": { ".validate": "newData.isString() && newData.val().length <= 16" },
+        "$other": { ".validate": false }
+      }
+    },
+    "games": {
+      "$room": {
+        ".write": "!newData.exists()",
+        "ev": {
+          ".read": true,
+          "$event": {
+            ".write": "!data.exists()",
+            ".validate": "newData.hasChildren(['s', 't']) && newData.child('s').val().matches(/^[wb]$/)",
+            "s": { ".validate": "newData.isString()" },
+            "t": { ".validate": "newData.isString() && newData.val().length <= 8" },
+            "a": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 63" },
+            "b": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 63" },
+            "p": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6" },
+            "c": { ".validate": "newData.val() == null || newData.isNumber()" },
+            "r": { ".validate": "newData.isString() && newData.val().length <= 120" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    }
+  }
+}
