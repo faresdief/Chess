@@ -2,6 +2,8 @@
 
 A light chess game that works offline and installs like an app (PWA). One HTML file, no build step, no dependencies: open `index.html` and play.
 
+**Live demo:** https://faresdief.github.io/Chess/
+
 ## Play modes
 
 - **Vs computer** with three difficulty levels
