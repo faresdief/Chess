@@ -1,6 +1,6 @@
 // Chess service worker.
 // Bump CACHE_VERSION whenever you change any cached file, so installed copies update.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE = "chess-" + CACHE_VERSION;
 const ASSETS = [
   "./",
